@@ -249,6 +249,8 @@ def show_controls():
 def level_1():
     # Базовые переменные игрока
     player_pos = [100, HEIGHT - 50 - 100]
+    camera_x = player_pos[0] - WIDTH//3
+    camera_y = player_pos[1] - HEIGHT//2
     player_velocity = [0, 0]
     is_on_ground = False
     health = 100
@@ -262,15 +264,23 @@ def level_1():
     bullets = []
     
     # Турель
-    turret = {
-        'rect': pygame.Rect(1500, HEIGHT-300, 40, 40),
-        'bullets': []
-    }
+    turrets = [
+    {'rect': pygame.Rect(1500, HEIGHT-300, 40, 40), 'bullets': []},
+    {'rect': pygame.Rect(2000, HEIGHT-400, 40, 40), 'bullets': []},
+    {'rect': pygame.Rect(2500, HEIGHT-350, 40, 40), 'bullets': []}
+    ]
+    
+    sloped_platforms = [
+    {'rect': pygame.Rect(800, HEIGHT-200, 200, 20), 'angle': 15},
+    {'rect': pygame.Rect(1200, HEIGHT-300, 200, 20), 'angle': -15},
+    {'rect': pygame.Rect(1600, HEIGHT-400, 200, 20), 'angle': 20}
+    ]
 
         # Платформы
     platforms = [
         # Основной пол
         pygame.Rect(0, HEIGHT - 50, 4000, 50),
+        pygame.Rect(-50, 0, 50, HEIGHT),
         
         # Основной путь
         pygame.Rect(200, HEIGHT - 150, 100, 20),
@@ -339,6 +349,11 @@ def level_1():
         {'rect': pygame.Rect(2500, HEIGHT-350, 30, 30), 'dx': 5, 'dy': 2, 'bounds': pygame.Rect(2400, HEIGHT-450, 200, 200)}
     ]
 
+    tall_enemies = [
+        {'rect': pygame.Rect(600, HEIGHT-130, 40, 70), 'direction': 1, 'start_x': 600, 'end_x': 800},
+        {'rect': pygame.Rect(1800, HEIGHT-130, 40, 70), 'direction': 1, 'start_x': 1800, 'end_x': 2000},
+    ]
+    
     running = True
     while running:
         screen.fill(GREY_TONE)
@@ -380,10 +395,40 @@ def level_1():
         is_on_ground = False
         for platform in platforms:
             if player_rect.colliderect(platform):
-                if player_velocity[1] > 0:
+                # Определяем направление столкновения
+                overlap_left = player_rect.right - platform.left
+                overlap_right = platform.right - player_rect.left
+                overlap_top = player_rect.bottom - platform.top
+                overlap_bottom = platform.bottom - player_rect.top
+                
+                # Находим минимальное перекрытие
+                min_overlap = min(overlap_left, overlap_right, overlap_top, overlap_bottom)
+                
+                # Корректируем позицию в зависимости от направления столкновения
+                if min_overlap == overlap_top and player_velocity[1] > 0:
                     player_pos[1] = platform.top - 50
                     player_velocity[1] = 0
                     is_on_ground = True
+                elif min_overlap == overlap_bottom and player_velocity[1] < 0:
+                    player_pos[1] = platform.bottom
+                    player_velocity[1] = 0
+                elif min_overlap == overlap_left:
+                    player_pos[0] = platform.left - 50
+                    player_velocity[0] = 0
+                elif min_overlap == overlap_right:
+                    player_pos[0] = platform.right
+                    player_velocity[0] = 0
+
+                    
+        # Добавьте обработку наклонных платформ:
+        for platform in sloped_platforms:
+            pygame.draw.rect(screen, (101, 67, 33), 
+                (platform['rect'].x - camera_x, platform['rect'].y - camera_y,
+                platform['rect'].width, platform['rect'].height))
+
+            if player_rect.colliderect(platform['rect']):
+                slide_speed = math.tan(math.radians(platform['angle'])) * 2
+                player_velocity[0] += slide_speed            
 
         # Сбор очков
         for point in exp_points[:]:
@@ -398,20 +443,21 @@ def level_1():
                 key_count += 1
                 score += 100
 
-            # Обновление турели
+        # Обновление турели
         current_time = pygame.time.get_ticks()
-        if current_time - last_shot_time > shot_delay:
-            for angle in range(0, 360, 45):
-                dx = math.cos(math.radians(angle)) * 5
-                dy = math.sin(math.radians(angle)) * 5
-                bullet = {
-                    'rect': pygame.Rect(turret['rect'].centerx, turret['rect'].centery, 10, 10),
-                    'dx': dx,
-                    'dy': dy,
-                    'distance': 0
-                }
-                bullets.append(bullet)
-            last_shot_time = current_time
+        for turret in turrets:
+            if current_time - last_shot_time > shot_delay:
+                for angle in range(0, 360, 45):
+                    dx = math.cos(math.radians(angle)) * 5
+                    dy = math.sin(math.radians(angle)) * 5
+                    bullet = {
+                        'rect': pygame.Rect(turret['rect'].centerx, turret['rect'].centery, 10, 10),
+                        'dx': dx,
+                        'dy': dy,
+                        'distance': 0
+                    }
+                    bullets.append(bullet)
+                last_shot_time = current_time
 
         # Обновление пуль
         for bullet in bullets[:]:
@@ -419,7 +465,7 @@ def level_1():
             bullet['rect'].y += bullet['dy']
             bullet['distance'] += math.sqrt(bullet['dx']**2 + bullet['dy']**2)
             
-            if bullet['distance'] > 100:
+            if bullet['distance'] > 300:
                 bullets.remove(bullet)
                 continue
                 
@@ -434,9 +480,10 @@ def level_1():
 
         # Обновление врагов
         for enemy in ground_enemies:
-            enemy['rect'].x += 2 * enemy['direction']
-            if enemy['rect'].x <= enemy['start_x'] or enemy['rect'].x >= enemy['end_x']:
+            new_x = enemy['rect'].x + 2 * enemy['direction']
+            if new_x <= enemy['start_x'] or new_x >= enemy['end_x']:
                 enemy['direction'] *= -1
+            enemy['rect'].x = new_x
 
         for enemy in air_enemies:
             enemy['rect'].x += enemy['dx']
@@ -447,8 +494,19 @@ def level_1():
                 if enemy['rect'].top < enemy['bounds'].top or enemy['rect'].bottom > enemy['bounds'].bottom:
                     enemy['dy'] *= -1
                 enemy['rect'].clamp_ip(enemy['bounds'])
+            
+        # В игровом цикле добавьте обновление высоких врагов:        
+        for enemy in tall_enemies:
+            enemy['rect'].x += 3 * enemy['direction']  # Увеличил скорость до 3
+            if enemy['rect'].x <= enemy['start_x']:
+                enemy['direction'] = 1
+            elif enemy['rect'].x >= enemy['end_x']:
+                enemy['direction'] = -1
+            pygame.draw.rect(screen, (255, 50, 50),
+                (enemy['rect'].x - camera_x, enemy['rect'].y,
+                enemy['rect'].width, enemy['rect'].height))
 
-            # Отрисовка всех элементов
+        # Отрисовка всех элементов
         for platform in platforms:
             pygame.draw.rect(screen, (101, 67, 33), 
                 (platform.x - camera_x, platform.y, platform.width, platform.height))
@@ -481,7 +539,23 @@ def level_1():
             pygame.draw.rect(screen, (255, 100, 100), 
                 (enemy['rect'].x - camera_x, enemy['rect'].y, 
                  enemy['rect'].width, enemy['rect'].height))
+            
+        # Проверка столкновений с наземными врагами
+        for enemy in ground_enemies:
+            if player_rect.colliderect(enemy['rect']):
+                health -= 5
 
+        # Проверка столкновений с воздушными врагами
+        for enemy in air_enemies:
+            if player_rect.colliderect(enemy['rect']):
+                health -= 5
+
+        # Проверка столкновений с высокими врагами
+        for enemy in tall_enemies:
+            if player_rect.colliderect(enemy['rect']):
+                health -= 10  # Больше урона от высоких врагов
+
+        
         # Игрок
         pygame.draw.rect(screen, HERO_COLOR_DARK, 
             (player_pos[0] - camera_x, player_pos[1], 50, 50))
