@@ -33,8 +33,14 @@ achievements = {
     "all_keys": {"name": "Ключник", "description": "Собрать все ключи на уровне", "unlocked": False},
     "level1_complete": {"name": "Покоритель замка", "description": "Пройти первый уровень", "unlocked": False},
     "level2_complete": {"name": "Исследователь пещер", "description": "Пройти второй уровень", "unlocked": False},
-    "level3_complete": {"name": "Властелин небес", "description": "Пройти третий уровень", "unlocked": False}
+    "level3_complete": {"name": "Властелин небес", "description": "Пройти третий уровень", "unlocked": False},
+    "exp_50": {"name": "Начинающий собиратель", "description": "Собрать 50 очков опыта", "unlocked": False},
+    "exp_100": {"name": "Опытный собиратель", "description": "Собрать 100 очков опыта", "unlocked": False},
+    "exp_200": {"name": "Мастер собиратель", "description": "Собрать 200 очков опыта", "unlocked": False},
+    "died_mobs": {"name": "Неосторожность", "description": "Умереть от врагов", "unlocked": False},
+    "died_fall": {"name": "Неудачный прыжок", "description": "Умереть от падения на 3 уровне", "unlocked": False}
 }
+
 
 def draw_text(text, x, y, color=WHITE):
     label = font.render(text, True, color)
@@ -80,32 +86,72 @@ def main_menu():
 
 def show_achievements():
     running = True
+    scroll_y = 0
+    scroll_speed = 20
+    total_height = len(achievements) * 100 + 150  # Общая высота всех достижений
+    visible_height = HEIGHT - 100  # Видимая область
+
     while running:
         screen.fill(BLACK)
         
+        # Заголовок (фиксированный)
         title = font.render("ДОСТИЖЕНИЯ", True, PASTEL_YELLOW)
         screen.blit(title, (WIDTH//2 - title.get_width()//2, 50))
         
-        y_offset = 150
-        for achievement in achievements.values():
-            pygame.draw.rect(screen, PASTEL_BLUE, (WIDTH//4, y_offset, WIDTH//2, 80), 2)
-            name = font.render(achievement["name"], True, WHITE)
-            screen.blit(name, (WIDTH//4 + 20, y_offset + 10))
-            desc = font.render(achievement["description"], True, PASTEL_GREEN)
-            screen.blit(desc, (WIDTH//4 + 20, y_offset + 40))
-            status = "✓" if achievement["unlocked"] else "✗"
-            status_text = font.render(status, True, PASTEL_GREEN if achievement["unlocked"] else PASTEL_RED)
-            screen.blit(status_text, (WIDTH//4 + WIDTH//2 - 40, y_offset + 25))
+        # Область прокрутки
+        y_offset = 150 + scroll_y
+        
+        # Отрисовка достижений
+        for achievement_id, achievement in achievements.items():
+            # Проверяем, находится ли достижение в видимой области
+            if y_offset + 80 > 100 and y_offset < HEIGHT:
+                # Рамка достижения
+                pygame.draw.rect(screen, WHITE, (WIDTH//4, y_offset, WIDTH//2, 80), 2)
+                
+                # Название и описание
+                name_color = PASTEL_GREEN if achievement["unlocked"] else WHITE
+                name = font.render(achievement["name"], True, name_color)
+                screen.blit(name, (WIDTH//4 + 20, y_offset + 10))
+                
+                desc = font.render(achievement["description"], True, WHITE)
+                screen.blit(desc, (WIDTH//4 + 20, y_offset + 40))
+                
+                # Индикатор выполнения (квадрат справа от рамки)
+                indicator_color = PASTEL_GREEN if achievement["unlocked"] else PASTEL_RED
+                pygame.draw.rect(screen, indicator_color, 
+                    (WIDTH//4 + WIDTH//2 + 20, y_offset + 25, 30, 30))
+            
             y_offset += 100
-        
-        pygame.display.flip()
-        
+
+        # Обработка событий
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
-                    running = False
+                    return
+                # Прокрутка клавишами вверх/вниз
+                elif event.key == pygame.K_UP:
+                    scroll_y += scroll_speed
+                    if scroll_y > 0:
+                        scroll_y = 0
+                elif event.key == pygame.K_DOWN:
+                    min_scroll = -(total_height - visible_height)
+                    scroll_y -= scroll_speed
+                    if scroll_y < min_scroll:
+                        scroll_y = min_scroll
+            # Прокрутка колесиком мыши
+            elif event.type == pygame.MOUSEWHEEL:
+                scroll_y += event.y * scroll_speed
+                if scroll_y > 0:
+                    scroll_y = 0
+                min_scroll = -(total_height - visible_height)
+                if scroll_y < min_scroll:
+                    scroll_y = min_scroll
+
+        pygame.display.flip()
+
+
                     
 def level_selection():
     while True:
@@ -335,6 +381,12 @@ def level_1():
             if player_rect.colliderect(point):
                 exp_points.remove(point)
                 score += 10
+                if score >= 50:
+                    achievements["exp_50"]["unlocked"] = True
+                if score >= 100:
+                    achievements["exp_100"]["unlocked"] = True
+                if score >= 200:
+                    achievements["exp_200"]["unlocked"] = True
 
         # Движение наземных врагов с ограничениями
         for enemy in ground_enemies:
@@ -393,6 +445,21 @@ def level_1():
             pygame.draw.rect(screen, (255, 100, 100), 
                 (enemy['rect'].x - camera_x, enemy['rect'].y, 
                  enemy['rect'].width, enemy['rect'].height))
+            
+        if key_count >= 3:
+            achievements["all_keys"]["unlocked"] = True
+            achievements["level1_complete"]["unlocked"] = True
+            draw_text("Уровень пройден!", WIDTH//2 - 100, HEIGHT//2)
+            pygame.display.flip()
+            pygame.time.delay(2000)
+            return
+
+        if health <= 0:
+            achievements["died_mobs"]["unlocked"] = True
+            draw_text("Игра окончена!", WIDTH//2 - 100, HEIGHT//2)
+            pygame.display.flip()
+            pygame.time.delay(2000)
+            return
 
         # Игрок
         pygame.draw.rect(screen, HERO_COLOR_DARK, 
@@ -496,6 +563,7 @@ def level_2():
             return
 
         if health <= 0:
+            achievements["died_mobs"]["unlocked"] = True
             draw_text("Игра окончена!", WIDTH//2 - 100, HEIGHT//2)
             pygame.display.flip()
             pygame.time.delay(2000)
@@ -601,6 +669,7 @@ def level_3():
             return
 
         if player_pos[1] > HEIGHT:
+            achievements["died_fall"]["unlocked"] = True
             draw_text("Игра окончена!", WIDTH//2 - 100, HEIGHT//2)
             pygame.display.flip()
             pygame.time.delay(2000)
