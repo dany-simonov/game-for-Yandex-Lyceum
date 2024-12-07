@@ -39,6 +39,44 @@ achievements = {
 def draw_text(text, x, y, color=WHITE):
     label = font.render(text, True, color)
     screen.blit(label, (x, y))
+    
+def main_menu():
+    clock = pygame.time.Clock()
+    
+    while True:
+        clock.tick(FPS)
+        screen.fill(BLACK)
+        
+        title = font.render("МЕНЮ", True, WHITE)
+        play_btn = font.render("1. ИГРАТЬ", True, WHITE)
+        achieve_btn = font.render("2. ДОСТИЖЕНИЯ", True, WHITE)
+        controls_btn = font.render("3. УПРАВЛЕНИЕ", True, WHITE)  # Изменено название
+        
+        screen.blit(title, (WIDTH//2 - title.get_width()//2, HEIGHT//2 - 100))
+        screen.blit(play_btn, (WIDTH//2 - play_btn.get_width()//2, HEIGHT//2 - 30))
+        screen.blit(achieve_btn, (WIDTH//2 - achieve_btn.get_width()//2, HEIGHT//2 + 20))
+        screen.blit(controls_btn, (WIDTH//2 - controls_btn.get_width()//2, HEIGHT//2 + 70))
+        
+        pygame.draw.rect(screen, WHITE, (WIDTH//2 - 150, HEIGHT//2 - 120, 300, 250), 2)
+        pygame.draw.line(screen, WHITE, (WIDTH//2 - 100, HEIGHT//2 - 70), 
+                        (WIDTH//2 + 100, HEIGHT//2 - 70), 2)
+
+        pygame.display.flip()
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_1:
+                    level_selection()
+                elif event.key == pygame.K_2:
+                    show_achievements()
+                elif event.key == pygame.K_3:
+                    show_controls()  # Убедитесь, что эта строка есть
+
+        pygame.display.flip()
+    
 
 def show_achievements():
     running = True
@@ -68,7 +106,7 @@ def show_achievements():
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
                     running = False
-
+                    
 def level_selection():
     while True:
         screen.fill(BLACK)
@@ -116,40 +154,51 @@ def level_selection():
                 elif event.key == pygame.K_ESCAPE:
                     return
 
-def main_menu():
-    clock = pygame.time.Clock()
+def show_controls():
+    running = True
+    controls = [
+        {"key": "ESC", "action": "Вернуться назад"},
+        {"key": "→", "action": "Движение вправо"},
+        {"key": "←", "action": "Движение влево"},
+        {"key": "ПРОБЕЛ", "action": "Прыжок"}
+    ]
     
-    while True:
-        clock.tick(FPS)
+    while running:
         screen.fill(BLACK)
         
-        title = font.render("МЕНЮ", True, WHITE)
-        play_btn = font.render("1. ИГРАТЬ", True, WHITE)
-        achieve_btn = font.render("2. ДОСТИЖЕНИЯ", True, WHITE)
-        settings_btn = font.render("3. НАСТРОЙКИ", True, WHITE)
+        # Заголовок
+        title = font.render("УПРАВЛЕНИЕ", True, PASTEL_YELLOW)
+        screen.blit(title, (WIDTH//2 - title.get_width()//2, 50))
         
-        screen.blit(title, (WIDTH//2 - title.get_width()//2, HEIGHT//2 - 100))
-        screen.blit(play_btn, (WIDTH//2 - play_btn.get_width()//2, HEIGHT//2 - 30))
-        screen.blit(achieve_btn, (WIDTH//2 - achieve_btn.get_width()//2, HEIGHT//2 + 20))
-        screen.blit(settings_btn, (WIDTH//2 - settings_btn.get_width()//2, HEIGHT//2 + 70))
+        # Отрисовка управления
+        y_offset = 150
+        for control in controls:
+            # Рамка для каждой клавиши
+            pygame.draw.rect(screen, PASTEL_BLUE, (WIDTH//4, y_offset, WIDTH//2, 60), 2)
+            
+            # Клавиша
+            key = font.render(control["key"], True, PASTEL_GREEN)
+            screen.blit(key, (WIDTH//4 + 20, y_offset + 20))
+            
+            # Действие
+            action = font.render(control["action"], True, WHITE)
+            screen.blit(action, (WIDTH//4 + 150, y_offset + 20))
+            
+            y_offset += 80
         
-        pygame.draw.rect(screen, WHITE, (WIDTH//2 - 150, HEIGHT//2 - 120, 300, 250), 2)
-        pygame.draw.line(screen, WHITE, (WIDTH//2 - 100, HEIGHT//2 - 70), 
-                        (WIDTH//2 + 100, HEIGHT//2 - 70), 2)
-
+        # Инструкция внизу
+        instruction = font.render("Нажмите ESC для возврата", True, WHITE)
+        screen.blit(instruction, (WIDTH//2 - instruction.get_width()//2, HEIGHT - 50))
+        
         pygame.display.flip()
-
+        
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                pygame.quit()
-                sys.exit()
+                running = False
             if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_1:
-                    level_selection()
-                elif event.key == pygame.K_2:
-                    show_achievements()
-                elif event.key == pygame.K_3:
-                    pass
+                if event.key == pygame.K_ESCAPE:
+                    return
+
 
 
 def level_1():
@@ -267,6 +316,13 @@ def level_1():
         for enemy in enemies:
             pygame.draw.rect(screen, PASTEL_RED, enemy)
 
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                running = False
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE:
+                    return 
+        
         pygame.display.flip()
         pygame.time.delay(30)
 
@@ -357,6 +413,13 @@ def level_2():
         for enemy in enemies:
             pygame.draw.rect(screen, PASTEL_RED, enemy)
 
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                running = False
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE:
+                    return 
+                
         pygame.display.flip()
         pygame.time.delay(30)
 
@@ -436,7 +499,7 @@ def level_3():
             pygame.display.flip()
             pygame.time.delay(2000)
             return
-
+        
         # Движение облаков
         for cloud in clouds:
             cloud.x += math.sin(pygame.time.get_ticks() * 0.001) * 2
@@ -446,6 +509,13 @@ def level_3():
         for platform in platforms:
             pygame.draw.rect(screen, PLATFORM_COLOR, platform)
 
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                running = False
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE:
+                    return 
+        
         pygame.display.flip()
         pygame.time.delay(30)
 
