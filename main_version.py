@@ -199,8 +199,6 @@ def show_controls():
                 if event.key == pygame.K_ESCAPE:
                     return
 
-
-
 def level_1():
     player_pos = [100, HEIGHT - 50 - 100]
     player_velocity = [0, 0]
@@ -208,40 +206,87 @@ def level_1():
     health = 100
     score = 0
     key_count = 0
-    player_rect = pygame.Rect(player_pos[0], player_pos[1], 50, 50)
+    camera_x = 0
 
+    # Расширенный список платформ разных размеров
     platforms = [
-        pygame.Rect(0, HEIGHT - 50, 3200, 50),
-        pygame.Rect(200, HEIGHT - 150, 150, 20),
-        pygame.Rect(400, HEIGHT - 250, 150, 20),
-        pygame.Rect(800, HEIGHT - 350, 150, 20),
-        pygame.Rect(1200, HEIGHT - 450, 150, 20),
-        pygame.Rect(1600, HEIGHT - 250, 150, 20),
-        pygame.Rect(2400, HEIGHT - 350, 150, 20),
-        pygame.Rect(2800, HEIGHT - 450, 150, 20),
-        pygame.Rect(600, HEIGHT - 200, 150, 20)
+        # Основной пол
+        pygame.Rect(0, HEIGHT - 50, 4000, 50),
+        # Короткие платформы
+        pygame.Rect(200, HEIGHT - 150, 100, 20),
+        pygame.Rect(500, HEIGHT - 250, 80, 20),
+        pygame.Rect(800, HEIGHT - 350, 120, 20),
+        # Средние платформы
+        pygame.Rect(1200, HEIGHT - 450, 200, 20),
+        pygame.Rect(1600, HEIGHT - 250, 180, 20),
+        pygame.Rect(2000, HEIGHT - 350, 160, 20),
+        # Длинные платформы
+        pygame.Rect(2400, HEIGHT - 250, 300, 20),
+        pygame.Rect(2800, HEIGHT - 350, 250, 20),
+        pygame.Rect(3200, HEIGHT - 450, 280, 20),
+        # Вертикальные платформы
+        pygame.Rect(1000, HEIGHT - 300, 50, 250),
+        pygame.Rect(1800, HEIGHT - 400, 50, 350),
+        pygame.Rect(2600, HEIGHT - 350, 50, 300)
     ]
 
+    # Очки (белые точки)
+    exp_points = [
+        pygame.Rect(x, y, 15, 15) for x, y in [
+            (250, HEIGHT - 180),  # На короткой платформе
+            (520, HEIGHT - 280),  # На другой платформе
+            (850, HEIGHT - 380),
+            (1250, HEIGHT - 480),
+            (1650, HEIGHT - 280),
+            (2050, HEIGHT - 380),
+            (2450, HEIGHT - 280),
+            (2850, HEIGHT - 380),
+            (3250, HEIGHT - 480),
+            # На полу
+            (400, HEIGHT - 80),
+            (800, HEIGHT - 80),
+            (1200, HEIGHT - 80),
+            (1600, HEIGHT - 80),
+            (2000, HEIGHT - 80),
+            (2400, HEIGHT - 80),
+            (2800, HEIGHT - 80),
+            (3200, HEIGHT - 80)
+        ]
+    ]
+
+    # Ключи (желтые, 3 штуки)
     keys = [
-        pygame.Rect(210, HEIGHT - 190, 20, 20),
-        pygame.Rect(410, HEIGHT - 290, 20, 20),
-        pygame.Rect(610, HEIGHT - 390, 20, 20)
+        pygame.Rect(600, HEIGHT - 300, 30, 30),    # Первый ключ
+        pygame.Rect(1500, HEIGHT - 500, 30, 30),   # Второй ключ
+        pygame.Rect(3300, HEIGHT - 500, 30, 30)    # Последний ключ
     ]
 
-    enemies = [
-        pygame.Rect(300, HEIGHT-100, 40, 40),
-        pygame.Rect(800, HEIGHT-200, 40, 40),
-        pygame.Rect(1200, HEIGHT-300, 40, 40)
+    # Наземные враги (с корректной начальной позицией)
+    ground_enemies = [
+        {'rect': pygame.Rect(400, HEIGHT-110, 60, 60), 'direction': 1, 'start_x': 400, 'end_x': 600},
+        {'rect': pygame.Rect(1400, HEIGHT-110, 60, 60), 'direction': 1, 'start_x': 1400, 'end_x': 1600},
+        {'rect': pygame.Rect(2400, HEIGHT-110, 60, 60), 'direction': 1, 'start_x': 2400, 'end_x': 2600}
+    ]
+
+    # Воздушные враги с ограничением движения
+    air_enemies = [
+        {'rect': pygame.Rect(700, HEIGHT-300, 30, 30), 'dx': 3, 'dy': 2, 'bounds': pygame.Rect(600, HEIGHT-400, 200, 200)},
+        {'rect': pygame.Rect(1600, HEIGHT-400, 30, 30), 'dx': 4, 'dy': 3, 'bounds': pygame.Rect(1500, HEIGHT-500, 200, 200)},
+        {'rect': pygame.Rect(2500, HEIGHT-350, 30, 30), 'dx': 5, 'dy': 2, 'bounds': pygame.Rect(2400, HEIGHT-450, 200, 200)}
     ]
 
     running = True
     while running:
         screen.fill(GREY_TONE)
+        camera_x = player_pos[0] - WIDTH//3
+
+        # UI
         draw_text("Уровень 1: Заброшенный замок", 10, 10)
         draw_text(f"Очки: {score}", 10, 40)
         draw_text(f"Здоровье: {health}", 10, 70)
         draw_text(f"Ключи: {key_count}/3", 10, 100)
 
+        # Обработка движения и коллизий (оставляем как есть)
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
@@ -249,6 +294,7 @@ def level_1():
                 if event.key == pygame.K_ESCAPE:
                     return
 
+        # Управление
         keys_pressed = pygame.key.get_pressed()
         if keys_pressed[pygame.K_LEFT]:
             player_velocity[0] = -5
@@ -261,12 +307,14 @@ def level_1():
             player_velocity[1] = -15
             is_on_ground = False
 
+        # Физика
         player_velocity[1] += GRAVITY
         player_pos[1] += player_velocity[1]
         player_pos[0] += player_velocity[0]
 
         player_rect = pygame.Rect(player_pos[0], player_pos[1], 50, 50)
 
+        # Коллизии с платформами
         is_on_ground = False
         for platform in platforms:
             if player_rect.colliderect(platform):
@@ -275,56 +323,85 @@ def level_1():
                     player_velocity[1] = 0
                     is_on_ground = True
 
+        # Сбор ключей
         for key in keys[:]:
             if player_rect.colliderect(key):
                 keys.remove(key)
                 key_count += 1
                 score += 100
 
-        if key_count >= 3:
-            achievements["all_keys"]["unlocked"] = True
-            achievements["level1_complete"]["unlocked"] = True
-            draw_text("Уровень пройден!", WIDTH//2 - 100, HEIGHT//2)
-            pygame.display.flip()
-            pygame.time.delay(2000)
-            return
+        # Сбор очков
+        for point in exp_points[:]:
+            if player_rect.colliderect(point):
+                exp_points.remove(point)
+                score += 10
 
-        for enemy in enemies:
-            if player_rect.colliderect(enemy):
-                health -= 1
-            enemy.x += random.randint(-2, 2)
-            enemy.y += random.randint(-2, 2)
-            enemy.x = max(0, min(enemy.x, WIDTH - 40))
-            enemy.y = max(0, min(enemy.y, HEIGHT - 90))
+        # Движение наземных врагов с ограничениями
+        for enemy in ground_enemies:
+            enemy['rect'].x += 2 * enemy['direction']
+            if enemy['rect'].x <= enemy['start_x'] or enemy['rect'].x >= enemy['end_x']:
+                enemy['direction'] *= -1
+            
+            # Проверка коллизии с полом
+            on_platform = False
+            for platform in platforms:
+                if enemy['rect'].bottom == platform.top and \
+                   enemy['rect'].right >= platform.left and \
+                   enemy['rect'].left <= platform.right:
+                    on_platform = True
+                    break
+            if not on_platform:
+                enemy['rect'].bottom = HEIGHT - 50  # Возвращаем на пол
 
-        if health <= 0:
-            draw_text("Игра окончена!", WIDTH//2 - 100, HEIGHT//2)
-            pygame.display.flip()
-            pygame.time.delay(2000)
-            return
+        # Движение воздушных врагов с ограничениями
+        for enemy in air_enemies:
+            enemy['rect'].x += enemy['dx']
+            enemy['rect'].y += enemy['dy']
+            
+            # Ограничение движения в заданных границах
+            if not enemy['bounds'].contains(enemy['rect']):
+                if enemy['rect'].left < enemy['bounds'].left or enemy['rect'].right > enemy['bounds'].right:
+                    enemy['dx'] *= -1
+                if enemy['rect'].top < enemy['bounds'].top or enemy['rect'].bottom > enemy['bounds'].bottom:
+                    enemy['dy'] *= -1
+                # Возвращаем врага в границы
+                enemy['rect'].clamp_ip(enemy['bounds'])
 
-        pygame.draw.rect(screen, HERO_COLOR_DARK, player_rect)
+        # Отрисовка
+        # Платформы
         for platform in platforms:
-            pygame.draw.rect(screen, (101, 67, 33), platform)
-        for key in keys:
-            pygame.draw.polygon(screen, PASTEL_YELLOW, [
-                (key.x, key.y), 
-                (key.x + 10, key.y - 10), 
-                (key.x + 20, key.y), 
-                (key.x + 10, key.y + 10)
-            ])
-        for enemy in enemies:
-            pygame.draw.rect(screen, PASTEL_RED, enemy)
+            pygame.draw.rect(screen, (101, 67, 33), 
+                (platform.x - camera_x, platform.y, platform.width, platform.height))
 
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                running = False
-            if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_ESCAPE:
-                    return 
-        
+        # Очки (белые)
+        for point in exp_points:
+            pygame.draw.rect(screen, WHITE, 
+                (point.x - camera_x, point.y, point.width, point.height))
+
+        # Ключи (желтые)
+        for key in keys:
+            pygame.draw.rect(screen, PASTEL_YELLOW, 
+                (key.x - camera_x, key.y, key.width, key.height))
+
+        # Враги
+        for enemy in ground_enemies:
+            pygame.draw.rect(screen, PASTEL_RED, 
+                (enemy['rect'].x - camera_x, enemy['rect'].y, 
+                 enemy['rect'].width, enemy['rect'].height))
+
+        for enemy in air_enemies:
+            pygame.draw.rect(screen, (255, 100, 100), 
+                (enemy['rect'].x - camera_x, enemy['rect'].y, 
+                 enemy['rect'].width, enemy['rect'].height))
+
+        # Игрок
+        pygame.draw.rect(screen, HERO_COLOR_DARK, 
+            (player_pos[0] - camera_x, player_pos[1], 50, 50))
+
         pygame.display.flip()
         pygame.time.delay(30)
+
+
 
 
 def level_2():
@@ -333,7 +410,7 @@ def level_2():
     is_on_ground = False
     health = 100
     score = 0
-    player_rect = pygame.Rect(player_pos[0], player_pos[1], 50, 50)
+    camera_x = 0
 
     platforms = [
         pygame.Rect(0, HEIGHT - 50, 3200, 50),
@@ -351,11 +428,15 @@ def level_2():
 
     running = True
     while running:
-        screen.fill((20, 15, 15))  # Тёмный фон для пещеры
+        screen.fill((20, 15, 15))
+        camera_x = player_pos[0] - WIDTH//3
+
+        # UI элементы
         draw_text("Уровень 2: Подземная пещера", 10, 10)
         draw_text(f"Очки: {score}", 10, 40)
         draw_text(f"Здоровье: {health}", 10, 70)
 
+        # Обработка событий
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
@@ -363,6 +444,7 @@ def level_2():
                 if event.key == pygame.K_ESCAPE:
                     return
 
+        # Управление
         keys_pressed = pygame.key.get_pressed()
         if keys_pressed[pygame.K_LEFT]:
             player_velocity[0] = -5
@@ -375,13 +457,15 @@ def level_2():
             player_velocity[1] = -15
             is_on_ground = False
 
+        # Физика
         player_velocity[1] += GRAVITY
         player_pos[1] += player_velocity[1]
         player_pos[0] += player_velocity[0]
 
+        # Коллизии
         player_rect = pygame.Rect(player_pos[0], player_pos[1], 50, 50)
-
         is_on_ground = False
+        
         for platform in platforms:
             if player_rect.colliderect(platform):
                 if player_velocity[1] > 0:
@@ -389,10 +473,20 @@ def level_2():
                     player_velocity[1] = 0
                     is_on_ground = True
 
+        # Отрисовка с учетом камеры
+        pygame.draw.rect(screen, HERO_COLOR_LIGHT, 
+            (player_pos[0] - camera_x, player_pos[1], 50, 50))
+
+        for platform in platforms:
+            pygame.draw.rect(screen, (50, 50, 50), 
+                (platform.x - camera_x, platform.y, platform.width, platform.height))
+
         for enemy in enemies:
             if player_rect.colliderect(enemy):
                 health -= 1
             enemy.y += math.sin(pygame.time.get_ticks() * 0.01) * 2
+            pygame.draw.rect(screen, PASTEL_RED, 
+                (enemy.x - camera_x, enemy.y, enemy.width, enemy.height))
 
         if player_pos[0] > WIDTH * 3:
             achievements["level2_complete"]["unlocked"] = True
@@ -407,19 +501,6 @@ def level_2():
             pygame.time.delay(2000)
             return
 
-        pygame.draw.rect(screen, HERO_COLOR_LIGHT, player_rect)
-        for platform in platforms:
-            pygame.draw.rect(screen, (50, 50, 50), platform)
-        for enemy in enemies:
-            pygame.draw.rect(screen, PASTEL_RED, enemy)
-
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                running = False
-            if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_ESCAPE:
-                    return 
-                
         pygame.display.flip()
         pygame.time.delay(30)
 
@@ -429,7 +510,7 @@ def level_3():
     is_on_ground = False
     health = 100
     score = 0
-    player_rect = pygame.Rect(player_pos[0], player_pos[1], 50, 50)
+    camera_x = 0
 
     platforms = [
         pygame.Rect(x, y, 150, 20) for x, y in [
@@ -440,7 +521,15 @@ def level_3():
             (800, HEIGHT - 450),
             (1000, HEIGHT - 350),
             (1200, HEIGHT - 250),
-            (1400, HEIGHT - 150)
+            (1400, HEIGHT - 150),
+            (1600, HEIGHT - 200),
+            (1800, HEIGHT - 300),
+            (2000, HEIGHT - 400),
+            (2200, HEIGHT - 200),
+            (2400, HEIGHT - 300),
+            (2600, HEIGHT - 400),
+            (2800, HEIGHT - 200),
+            (3000, HEIGHT - 300)
         ]
     ]
 
@@ -450,6 +539,8 @@ def level_3():
     running = True
     while running:
         screen.fill(CLOUD_COLOR)
+        camera_x = player_pos[0] - WIDTH//3
+
         draw_text("Уровень 3: Небесные острова", 10, 10)
         draw_text(f"Очки: {score}", 10, 40)
         draw_text(f"Здоровье: {health}", 10, 70)
@@ -473,7 +564,7 @@ def level_3():
             player_velocity[1] = -15
             is_on_ground = False
 
-        player_velocity[1] += GRAVITY * 0.7  # Уменьшенная гравитация для небесного уровня
+        player_velocity[1] += GRAVITY * 0.7
         player_pos[1] += player_velocity[1]
         player_pos[0] += player_velocity[0]
 
@@ -487,7 +578,22 @@ def level_3():
                     player_velocity[1] = 0
                     is_on_ground = True
 
-        if player_pos[1] < 0:
+        # Отрисовка облаков
+        for cloud in clouds:
+            cloud.x += math.sin(pygame.time.get_ticks() * 0.001) * 2
+            pygame.draw.ellipse(screen, WHITE, 
+                (cloud.x - camera_x, cloud.y, cloud.width, cloud.height))
+
+        # Отрисовка игрока и платформ
+        pygame.draw.rect(screen, HERO_COLOR_DARK, 
+            (player_pos[0] - camera_x, player_pos[1], 50, 50))
+
+        for platform in platforms:
+            pygame.draw.rect(screen, PLATFORM_COLOR, 
+                (platform.x - camera_x, platform.y, platform.width, platform.height))
+
+        # Проверка завершения уровня
+        if player_pos[0] >= 3000:
             achievements["level3_complete"]["unlocked"] = True
             draw_text("Уровень пройден!", WIDTH//2 - 100, HEIGHT//2)
             pygame.display.flip()
@@ -499,26 +605,11 @@ def level_3():
             pygame.display.flip()
             pygame.time.delay(2000)
             return
-        
-        # Движение облаков
-        for cloud in clouds:
-            cloud.x += math.sin(pygame.time.get_ticks() * 0.001) * 2
-            pygame.draw.ellipse(screen, WHITE, cloud)
 
-        pygame.draw.rect(screen, HERO_COLOR_DARK, player_rect)
-        for platform in platforms:
-            pygame.draw.rect(screen, PLATFORM_COLOR, platform)
-
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                running = False
-            if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_ESCAPE:
-                    return 
-        
         pygame.display.flip()
         pygame.time.delay(30)
 
+        
 if __name__ == "__main__":
     pygame.display.set_caption("Игра")
     main_menu()
