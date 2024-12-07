@@ -245,7 +245,9 @@ def show_controls():
                 if event.key == pygame.K_ESCAPE:
                     return
 
+
 def level_1():
+    # Базовые переменные игрока
     player_pos = [100, HEIGHT - 50 - 100]
     player_velocity = [0, 0]
     is_on_ground = False
@@ -254,67 +256,83 @@ def level_1():
     key_count = 0
     camera_x = 0
 
-    # Расширенный список платформ разных размеров
+    # Переменные для стреляющей турели
+    last_shot_time = pygame.time.get_ticks()
+    shot_delay = 5000
+    bullets = []
+    
+    # Турель
+    turret = {
+        'rect': pygame.Rect(1500, HEIGHT-300, 40, 40),
+        'bullets': []
+    }
+
+        # Платформы
     platforms = [
         # Основной пол
         pygame.Rect(0, HEIGHT - 50, 4000, 50),
-        # Короткие платформы
+        
+        # Основной путь
         pygame.Rect(200, HEIGHT - 150, 100, 20),
-        pygame.Rect(500, HEIGHT - 250, 80, 20),
-        pygame.Rect(800, HEIGHT - 350, 120, 20),
-        # Средние платформы
-        pygame.Rect(1200, HEIGHT - 450, 200, 20),
-        pygame.Rect(1600, HEIGHT - 250, 180, 20),
-        pygame.Rect(2000, HEIGHT - 350, 160, 20),
-        # Длинные платформы
-        pygame.Rect(2400, HEIGHT - 250, 300, 20),
-        pygame.Rect(2800, HEIGHT - 350, 250, 20),
-        pygame.Rect(3200, HEIGHT - 450, 280, 20),
+        pygame.Rect(400, HEIGHT - 250, 80, 20),
+        pygame.Rect(600, HEIGHT - 350, 120, 20),
+        
+        # Верхний путь
+        pygame.Rect(300, HEIGHT - 400, 100, 20),
+        pygame.Rect(500, HEIGHT - 450, 100, 20),
+        pygame.Rect(700, HEIGHT - 500, 100, 20),
+        
+        # Тупиковый путь
+        pygame.Rect(800, HEIGHT - 200, 100, 20),
+        pygame.Rect(1000, HEIGHT - 200, 100, 20),
+        pygame.Rect(1200, HEIGHT - 200, 100, 20),
+        
+        # Секретный проход
+        pygame.Rect(1500, HEIGHT - 600, 100, 20),
+        pygame.Rect(1700, HEIGHT - 550, 100, 20),
+        pygame.Rect(1900, HEIGHT - 500, 100, 20),
+        
         # Вертикальные платформы
-        pygame.Rect(1000, HEIGHT - 300, 50, 250),
-        pygame.Rect(1800, HEIGHT - 400, 50, 350),
-        pygame.Rect(2600, HEIGHT - 350, 50, 300)
+        pygame.Rect(1100, HEIGHT - 400, 50, 200),
+        pygame.Rect(1400, HEIGHT - 500, 50, 300),
+        pygame.Rect(1800, HEIGHT - 400, 50, 250),
+        
+        # Финальная часть
+        pygame.Rect(2200, HEIGHT - 350, 200, 20),
+        pygame.Rect(2500, HEIGHT - 400, 150, 20),
+        pygame.Rect(2800, HEIGHT - 450, 100, 20),
+        pygame.Rect(3100, HEIGHT - 500, 200, 20)
     ]
 
-    # Очки (белые точки)
-    exp_points = [
-        pygame.Rect(x, y, 15, 15) for x, y in [
-            (250, HEIGHT - 180),  # На короткой платформе
-            (520, HEIGHT - 280),  # На другой платформе
-            (850, HEIGHT - 380),
-            (1250, HEIGHT - 480),
-            (1650, HEIGHT - 280),
-            (2050, HEIGHT - 380),
-            (2450, HEIGHT - 280),
-            (2850, HEIGHT - 380),
-            (3250, HEIGHT - 480),
-            # На полу
-            (400, HEIGHT - 80),
-            (800, HEIGHT - 80),
-            (1200, HEIGHT - 80),
-            (1600, HEIGHT - 80),
-            (2000, HEIGHT - 80),
-            (2400, HEIGHT - 80),
-            (2800, HEIGHT - 80),
-            (3200, HEIGHT - 80)
-        ]
-    ]
+    # Очки опыта
+    exp_points = [pygame.Rect(x, y, 15, 15) for x, y in [
+        # Основной путь
+        (250, HEIGHT - 180), (450, HEIGHT - 280), (650, HEIGHT - 380),
+        # Верхний путь
+        (350, HEIGHT - 430), (550, HEIGHT - 480), (750, HEIGHT - 530),
+        # Тупиковый путь
+        (850, HEIGHT - 230), (1050, HEIGHT - 230), (1250, HEIGHT - 230),
+        # Секретный проход
+        (1550, HEIGHT - 630), (1750, HEIGHT - 580), (1950, HEIGHT - 530),
+        # Финальный участок
+        (2250, HEIGHT - 380), (2550, HEIGHT - 430), (2850, HEIGHT - 480),
+        (3150, HEIGHT - 530)
+    ]]
 
-    # Ключи (желтые, 3 штуки)
+    # Ключи
     keys = [
-        pygame.Rect(600, HEIGHT - 300, 30, 30),    # Первый ключ
-        pygame.Rect(1500, HEIGHT - 500, 30, 30),   # Второй ключ
-        pygame.Rect(3300, HEIGHT - 500, 30, 30)    # Последний ключ
+        pygame.Rect(1250, HEIGHT - 230, 30, 30),  # Тупик
+        pygame.Rect(1950, HEIGHT - 530, 30, 30),  # Секретный проход
+        pygame.Rect(3150, HEIGHT - 530, 30, 30)   # Конец уровня
     ]
 
-    # Наземные враги (с корректной начальной позицией)
+    # Враги
     ground_enemies = [
         {'rect': pygame.Rect(400, HEIGHT-110, 60, 60), 'direction': 1, 'start_x': 400, 'end_x': 600},
         {'rect': pygame.Rect(1400, HEIGHT-110, 60, 60), 'direction': 1, 'start_x': 1400, 'end_x': 1600},
         {'rect': pygame.Rect(2400, HEIGHT-110, 60, 60), 'direction': 1, 'start_x': 2400, 'end_x': 2600}
     ]
 
-    # Воздушные враги с ограничением движения
     air_enemies = [
         {'rect': pygame.Rect(700, HEIGHT-300, 30, 30), 'dx': 3, 'dy': 2, 'bounds': pygame.Rect(600, HEIGHT-400, 200, 200)},
         {'rect': pygame.Rect(1600, HEIGHT-400, 30, 30), 'dx': 4, 'dy': 3, 'bounds': pygame.Rect(1500, HEIGHT-500, 200, 200)},
@@ -332,7 +350,6 @@ def level_1():
         draw_text(f"Здоровье: {health}", 10, 70)
         draw_text(f"Ключи: {key_count}/3", 10, 100)
 
-        # Обработка движения и коллизий (оставляем как есть)
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
@@ -352,12 +369,11 @@ def level_1():
         if keys_pressed[pygame.K_SPACE] and is_on_ground:
             player_velocity[1] = -15
             is_on_ground = False
-
-        # Физика
+    
+            # Физика игрока
         player_velocity[1] += GRAVITY
         player_pos[1] += player_velocity[1]
         player_pos[0] += player_velocity[0]
-
         player_rect = pygame.Rect(player_pos[0], player_pos[1], 50, 50)
 
         # Коллизии с платформами
@@ -369,6 +385,12 @@ def level_1():
                     player_velocity[1] = 0
                     is_on_ground = True
 
+        # Сбор очков
+        for point in exp_points[:]:
+            if player_rect.colliderect(point):
+                exp_points.remove(point)
+                score += 10
+
         # Сбор ключей
         for key in keys[:]:
             if player_rect.colliderect(key):
@@ -376,64 +398,78 @@ def level_1():
                 key_count += 1
                 score += 100
 
-        # Сбор очков
-        for point in exp_points[:]:
-            if player_rect.colliderect(point):
-                exp_points.remove(point)
-                score += 10
-                if score >= 50:
-                    achievements["exp_50"]["unlocked"] = True
-                if score >= 100:
-                    achievements["exp_100"]["unlocked"] = True
-                if score >= 200:
-                    achievements["exp_200"]["unlocked"] = True
+            # Обновление турели
+        current_time = pygame.time.get_ticks()
+        if current_time - last_shot_time > shot_delay:
+            for angle in range(0, 360, 45):
+                dx = math.cos(math.radians(angle)) * 5
+                dy = math.sin(math.radians(angle)) * 5
+                bullet = {
+                    'rect': pygame.Rect(turret['rect'].centerx, turret['rect'].centery, 10, 10),
+                    'dx': dx,
+                    'dy': dy,
+                    'distance': 0
+                }
+                bullets.append(bullet)
+            last_shot_time = current_time
 
-        # Движение наземных врагов с ограничениями
+        # Обновление пуль
+        for bullet in bullets[:]:
+            bullet['rect'].x += bullet['dx']
+            bullet['rect'].y += bullet['dy']
+            bullet['distance'] += math.sqrt(bullet['dx']**2 + bullet['dy']**2)
+            
+            if bullet['distance'] > 100:
+                bullets.remove(bullet)
+                continue
+                
+            for platform in platforms:
+                if bullet['rect'].colliderect(platform):
+                    bullets.remove(bullet)
+                    break
+                    
+            if bullet['rect'].colliderect(player_rect):
+                health -= 1
+                bullets.remove(bullet)
+
+        # Обновление врагов
         for enemy in ground_enemies:
             enemy['rect'].x += 2 * enemy['direction']
             if enemy['rect'].x <= enemy['start_x'] or enemy['rect'].x >= enemy['end_x']:
                 enemy['direction'] *= -1
-            
-            # Проверка коллизии с полом
-            on_platform = False
-            for platform in platforms:
-                if enemy['rect'].bottom == platform.top and \
-                   enemy['rect'].right >= platform.left and \
-                   enemy['rect'].left <= platform.right:
-                    on_platform = True
-                    break
-            if not on_platform:
-                enemy['rect'].bottom = HEIGHT - 50  # Возвращаем на пол
 
-        # Движение воздушных врагов с ограничениями
         for enemy in air_enemies:
             enemy['rect'].x += enemy['dx']
             enemy['rect'].y += enemy['dy']
-            
-            # Ограничение движения в заданных границах
             if not enemy['bounds'].contains(enemy['rect']):
                 if enemy['rect'].left < enemy['bounds'].left or enemy['rect'].right > enemy['bounds'].right:
                     enemy['dx'] *= -1
                 if enemy['rect'].top < enemy['bounds'].top or enemy['rect'].bottom > enemy['bounds'].bottom:
                     enemy['dy'] *= -1
-                # Возвращаем врага в границы
                 enemy['rect'].clamp_ip(enemy['bounds'])
 
-        # Отрисовка
-        # Платформы
+            # Отрисовка всех элементов
         for platform in platforms:
             pygame.draw.rect(screen, (101, 67, 33), 
                 (platform.x - camera_x, platform.y, platform.width, platform.height))
 
-        # Очки (белые)
         for point in exp_points:
             pygame.draw.rect(screen, WHITE, 
                 (point.x - camera_x, point.y, point.width, point.height))
 
-        # Ключи (желтые)
         for key in keys:
             pygame.draw.rect(screen, PASTEL_YELLOW, 
                 (key.x - camera_x, key.y, key.width, key.height))
+
+        # Турель и пули
+        pygame.draw.rect(screen, (148, 0, 211), 
+            (turret['rect'].x - camera_x, turret['rect'].y, 
+             turret['rect'].width, turret['rect'].height))
+
+        for bullet in bullets:
+            pygame.draw.rect(screen, (148, 0, 211),
+                (bullet['rect'].x - camera_x, bullet['rect'].y,
+                 bullet['rect'].width, bullet['rect'].height))
 
         # Враги
         for enemy in ground_enemies:
@@ -445,7 +481,12 @@ def level_1():
             pygame.draw.rect(screen, (255, 100, 100), 
                 (enemy['rect'].x - camera_x, enemy['rect'].y, 
                  enemy['rect'].width, enemy['rect'].height))
-            
+
+        # Игрок
+        pygame.draw.rect(screen, HERO_COLOR_DARK, 
+            (player_pos[0] - camera_x, player_pos[1], 50, 50))
+
+        # Проверка победы/поражения
         if key_count >= 3:
             achievements["all_keys"]["unlocked"] = True
             achievements["level1_complete"]["unlocked"] = True
@@ -461,14 +502,8 @@ def level_1():
             pygame.time.delay(2000)
             return
 
-        # Игрок
-        pygame.draw.rect(screen, HERO_COLOR_DARK, 
-            (player_pos[0] - camera_x, player_pos[1], 50, 50))
-
         pygame.display.flip()
         pygame.time.delay(30)
-
-
 
 
 def level_2():
@@ -667,7 +702,7 @@ def level_3():
             pygame.display.flip()
             pygame.time.delay(2000)
             return
-
+        
         if player_pos[1] > HEIGHT:
             achievements["died_fall"]["unlocked"] = True
             draw_text("Игра окончена!", WIDTH//2 - 100, HEIGHT//2)
