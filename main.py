@@ -1,8 +1,8 @@
 import pygame
 import sys
-import math
-import random
 import pytmx
+from database import init_db, save_achievement, load_achievements
+
 
 pygame.init()
 
@@ -33,10 +33,12 @@ screen = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("Игра")
 font = pygame.font.SysFont("Arial", 24)
 
+from database import init_db, save_achievement, load_achievements
+
 # ------------------------
 # СИСТЕМА ДОСТИЖЕНИЙ
 # ------------------------
-achievements = {
+base_achievements = {
     "all_keys": {"name": "Ключник", "description": "Собрать все ключи на уровне", "unlocked": False},
     "level1_complete": {"name": "Покоритель замка", "description": "Пройти первый уровень", "unlocked": False},
     "level2_complete": {"name": "Исследователь пещер", "description": "Пройти второй уровень", "unlocked": False},
@@ -47,6 +49,28 @@ achievements = {
     "died_mobs": {"name": "Неосторожность", "description": "Умереть от врагов", "unlocked": False},
     "died_fall": {"name": "Неудачный прыжок", "description": "Умереть от падения на 3 уровне", "unlocked": False}
 }
+
+# Инициализация базы данных и загрузка достижений
+init_db()
+loaded_achievements = load_achievements()
+achievements = base_achievements.copy()
+
+# Обновление статуса достижений из базы данных
+if loaded_achievements:
+    for key, value in loaded_achievements.items():
+        if key in achievements:
+            achievements[key]["unlocked"] = value["unlocked"]
+
+
+def unlock_achievement(achievement_id):
+    achievements[achievement_id]["unlocked"] = True
+    save_achievement(
+        achievement_id,
+        achievements[achievement_id]["name"],
+        achievements[achievement_id]["description"],
+        True
+    )
+
 
 
 def draw_text(text, x, y, color=WHITE):
@@ -608,6 +632,39 @@ class Ghost:
         screen_y = (self.y * scale_factor)
         surface.blit(frame, (screen_x, screen_y))
 
+def save_level1_achievements(key_count=0, win=False, death=False):
+    if win:
+        achievements["level1_complete"]["unlocked"] = True
+        save_achievement("level1_complete", "Покоритель замка", "Пройти первый уровень", True)
+        if key_count >= 3:
+            achievements["all_keys"]["unlocked"] = True
+            save_achievement("all_keys", "Ключник", "Собрать все ключи на уровне", True)
+    if death:
+        achievements["died_mobs"]["unlocked"] = True
+        save_achievement("died_mobs", "Неосторожность", "Умереть от врагов", True)
+
+def save_level2_achievements(key_count=0, win=False, death=False):
+    if win:
+        achievements["level2_complete"]["unlocked"] = True
+        save_achievement("level2_complete", "Исследователь пещер", "Пройти второй уровень", True)
+        if key_count >= 3:
+            achievements["all_keys"]["unlocked"] = True
+            save_achievement("all_keys", "Ключник", "Собрать все ключи на уровне", True)
+    if death:
+        achievements["died_mobs"]["unlocked"] = True
+        save_achievement("died_mobs", "Неосторожность", "Умереть от врагов", True)
+
+def save_level3_achievements(key_count=0, win=False, death=False):
+    if win:
+        achievements["level3_complete"]["unlocked"] = True
+        save_achievement("level3_complete", "Властелин небес", "Пройти третий уровень", True)
+        if key_count >= 3:
+            achievements["all_keys"]["unlocked"] = True
+            save_achievement("all_keys", "Ключник", "Собрать все ключи на уровне", True)
+    if death:
+        achievements["died_fall"]["unlocked"] = True
+        save_achievement("died_fall", "Неудачный прыжок", "Умереть от падения на 3 уровне", True)
+
 
 class LevelOne:
     def __init__(self):
@@ -758,8 +815,7 @@ class LevelOne:
             # Объекты выигрыша
             for wrect in self.win_objects:
                 if player_rect.colliderect(wrect):
-                    achievements["all_keys"]["unlocked"] = True
-                    achievements["level1_complete"]["unlocked"] = True
+                    save_level1_achievements(self.key_count, win=True)
                     draw_text("Уровень пройден!", WIDTH // 2 - 80, HEIGHT // 2)
                     pygame.display.flip()
                     pygame.time.delay(2000)
@@ -813,8 +869,8 @@ class LevelOne:
 
             # Проверка победы (3 ключа)
             if self.key_count >= 3:
-                achievements["all_keys"]["unlocked"] = True
-                achievements["level1_complete"]["unlocked"] = True
+                save_achievement("all_keys", "Ключник", "Собрать все ключи на уровне", True)
+                save_achievement("level1_complete", "Покоритель замка", "Пройти первый уровень", True)
                 draw_text("Уровень пройден (3 ключа)!", WIDTH // 2 - 100, HEIGHT // 2)
                 pygame.display.flip()
                 pygame.time.delay(2000)
@@ -822,7 +878,7 @@ class LevelOne:
 
             # Проверка смерти
             if self.player.health <= 0:
-                achievements["died_mobs"]["unlocked"] = True
+                save_level1_achievements(death=True)
                 draw_text("Игра окончена!", WIDTH // 2 - 60, HEIGHT // 2)
                 pygame.display.flip()
                 pygame.time.delay(2000)
@@ -971,7 +1027,7 @@ class LevelTwo:
             # ОБЪЕКТЫ ВЫИГРЫША
             for wrect in self.win_objects:
                 if player_rect.colliderect(wrect):
-                    achievements["level2_complete"]["unlocked"] = True
+                    save_achievement("level2_complete", "Исследователь пещер", "Пройти второй уровень", True)
                     draw_text("Уровень 2 пройден!", WIDTH // 2 - 60, HEIGHT // 2)
                     pygame.display.flip()
                     pygame.time.delay(2000)
@@ -1019,7 +1075,7 @@ class LevelTwo:
 
             # Проверка смерти
             if self.player.health <= 0:
-                achievements["died_mobs"]["unlocked"] = True
+                save_level2_achievements(death=True)
                 draw_text("Игра окончена!", WIDTH // 2 - 60, HEIGHT // 2)
                 pygame.display.flip()
                 pygame.time.delay(2000)
@@ -1163,7 +1219,7 @@ class LevelThree:
             # 4) Выигрыш (winning3)
             for wrect in self.win_objects:
                 if player_rect.colliderect(wrect):
-                    achievements["level3_complete"]["unlocked"] = True
+                    save_achievement("level3_complete", "Властелин небес", "Пройти третий уровень", True)
                     draw_text("Уровень 3 пройден!", WIDTH // 2 - 80, HEIGHT // 2)
                     pygame.display.flip()
                     pygame.time.delay(2000)
@@ -1197,7 +1253,7 @@ class LevelThree:
 
             # Проверка смерти
             if self.player.health <= 0:
-                achievements["died_fall"]["unlocked"] = True  # или died_mobs
+                save_level3_achievements(death=True)
                 draw_text("Игра окончена!", WIDTH // 2 - 60, HEIGHT // 2)
                 pygame.display.flip()
                 pygame.time.delay(2000)

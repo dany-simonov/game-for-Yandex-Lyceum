@@ -1,0 +1,3 @@
+pygame==2.5.2
+pytmx==3.32
+sqlite3==3.35.0
